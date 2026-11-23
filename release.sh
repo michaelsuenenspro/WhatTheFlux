@@ -66,21 +66,25 @@ echo "Compiling with Docker ($DOCKER_PLATFORM, Python $GX_PY_VER)..."
 mkdir -p "$DIST_DIR"
 rm -f "$DIST_DIR"/*.so
 
-# Run a matching Python image, install Cython, compile, copy .so to /dist
+# Only the files needed to compile go into the container, never the private key.
+BUILD_DIR="$(mktemp -d "${TMPDIR:-/tmp}/whattheflux-build.XXXXXX")"
+trap 'rm -rf "$BUILD_DIR"' EXIT
+cp "$LOCAL_DIR/setup.py" "$LOCAL_DIR/whattheflux_core.py" "$LOCAL_DIR/whattheflux_web.py" "$BUILD_DIR/"
+
+# Run a matching Python image, install Cython, compile without debug info and
+# strip the symbol table, copy .so to /dist
 docker run --rm \
     --platform "$DOCKER_PLATFORM" \
-    -v "$LOCAL_DIR:/src" \
+    -v "$BUILD_DIR:/src" \
     -v "$DIST_DIR:/dist" \
     -w /src \
     "python:${GX_PY_VER}-slim" \
     sh -c "
-        apt-get update -qq && apt-get install -y -q gcc &&
+        apt-get update -qq && apt-get install -y -q gcc binutils > /dev/null &&
         pip install cython setuptools --quiet --disable-pip-version-check &&
-        python setup.py build_ext --inplace --force 2>&1 | grep -v '^running\|^gcc\|^creating\|^copying' ;
-        cp whattheflux_core*.so /dist/ 2>/dev/null || true
-        cp whattheflux_web*.so  /dist/ 2>/dev/null || true
-        rm -f whattheflux_core*.so whattheflux_web*.so whattheflux_core.c whattheflux_web.c
-        rm -rf build/
+        CFLAGS=-g0 python setup.py build_ext --inplace --force > /tmp/build.log 2>&1 || { cat /tmp/build.log; exit 1; }
+        strip --strip-all whattheflux_core*.so whattheflux_web*.so &&
+        cp whattheflux_core*.so whattheflux_web*.so /dist/
     " || {
     echo "ERROR: Docker compilation failed."
     echo "       Make sure Docker Desktop is running and supports multi-platform builds."
@@ -105,13 +109,21 @@ ls -lh "$DIST_DIR"/*.so
 # --- Deploy launchers to GX ---
 echo ""
 echo "Uploading launcher scripts to GX..."
-scp "$LOCAL_DIR/whattheflux.py" "root@$GX_IP:$GX_APP_DIR/whattheflux.py"
-scp "$LOCAL_DIR/whattheflux_webgui.py"                        "root@$GX_IP:$GX_APP_DIR/whattheflux_webgui.py"
+# Upload next to the target and rename: overwriting a loaded .so in place can
+# crash the running driver.
+upload() {
+    name="$(basename "$1")"
+    scp "$1" "root@$GX_IP:$GX_APP_DIR/$name.new"
+    ssh "root@$GX_IP" "mv '$GX_APP_DIR/$name.new' '$GX_APP_DIR/$name'"
+}
+upload "$LOCAL_DIR/whattheflux.py"
+upload "$LOCAL_DIR/whattheflux_webgui.py"
 
 # --- Deploy binaries to GX ---
 echo "Uploading binaries to GX..."
-scp "$DIST_DIR"/whattheflux_core*.so  "root@$GX_IP:$GX_APP_DIR/"
-scp "$DIST_DIR"/whattheflux_web*.so   "root@$GX_IP:$GX_APP_DIR/"
+for f in "$DIST_DIR"/whattheflux_core*.so "$DIST_DIR"/whattheflux_web*.so; do
+    upload "$f"
+done
 
 echo "Restarting services on GX..."
 ssh "root@$GX_IP" "svc -t $GX_APP_DIR"
