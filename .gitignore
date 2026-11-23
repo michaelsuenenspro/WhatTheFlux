@@ -1,0 +1,13 @@
+# Source is never published; releases ship compiled binaries only.
+whattheflux_core*.py
+whattheflux_web.py
+*.bak-*
+*.c
+build/
+dist/
+*.so
+*.pem
+*.lic
+config_*.ini
+test_*.py
+simulator/

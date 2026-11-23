@@ -1,0 +1,130 @@
+[alfen]
+
+# IP address of the Alfen charger
+ip = 192.168.1.122
+
+# Modbus TCP port (default = 502)
+port = 502
+
+# Modbus slave/unit ID
+unit_id = 1
+
+
+[venus]
+
+# Unique Venus OS device instance number
+device_instance = 42
+
+# Name shown in Venus OS and VRM
+custom_name = WhatTheFlux
+
+# AC position in Venus OS
+# 0 = AC Input
+# 1 = AC Output / Essential Loads
+position = 0
+
+# Polling interval in milliseconds
+poll_ms = 5000
+
+
+[charging]
+
+# Minimum charging current allowed by the EV charger
+min_current = 6
+
+# Maximum charging current allowed by the installation
+max_current = 23
+
+# Default manual charging current
+manual_current = 16
+
+# Default manual charging phases
+# Allowed values: 1 or 3
+manual_phases = 3
+
+# Default operating mode
+# 0 = Manual
+# 1 = Automatic solar charging
+# 2 = Scheduled charging
+default_mode = 1
+
+# Default EV priority mode
+# 0 = Battery priority
+# 1 = EV priority
+default_ev_priority = 0
+
+# Battery charging reserve kept before EV gets priority
+# Only used when EV priority is enabled
+battery_reserve_charge_w = 300
+
+
+[schedule]
+
+# Scheduled charging current
+current = 16
+
+# Scheduled charging phases
+# Allowed values: 1 or 3
+phases = 3
+
+# Scheduled charging start hour (24h format)
+start_hour = 22
+
+# Scheduled charging stop hour (24h format)
+end_hour = 6
+
+
+[auto]
+
+# Minimum available solar power before charging starts
+export_start_w = 1400
+
+# Power threshold to switch to 3-phase charging
+phase3_start_w = 5000
+
+# Power threshold to switch back to 1-phase charging
+phase3_stop_w = 3800
+
+# Maximum allowed grid import before charging stops
+grid_import_limit_w = 200
+
+# Stop charging when battery discharge exceeds this value
+battery_discharge_limit_w = -200
+
+# Emergency stop threshold for battery discharge
+battery_hard_discharge_w = -800
+
+# Minimum battery SOC allowed for charging (stops at or below this value)
+soc_min = 30
+
+# Minimum time in seconds between phase switches (prevents flapping)
+phase_switch_debounce_s = 120
+
+
+[dbus_services]
+
+# Comma-separated list of PV inverter D-Bus service names
+# Only used when pv_autodetect = false
+pv_services = com.victronenergy.pvinverter.apsystems_41
+
+# Automatically detect all PV inverters on D-Bus
+# When true, pv_services is ignored
+pv_autodetect = true
+
+
+[registers]
+
+# Modbus register for charging current control
+set_current = 1210
+
+# Modbus register for phase switching
+phase_switch = 1215
+
+
+[logging]
+
+# Log file path
+file = /var/log/whattheflux.log
+
+# Log level: DEBUG, INFO, WARNING, ERROR
+level = INFO
