@@ -53,7 +53,7 @@ echo "  Docker platform: $DOCKER_PLATFORM"
 if [ -f "$LOCAL_DIR/generate_license.py" ]; then
     echo ""
     echo "Updating revocation list in whattheflux_core.py..."
-    python3 "$LOCAL_DIR/generate_license.py" ingetrokken --naar-driver "$LOCAL_DIR/whattheflux_core.py" || {
+    python3 "$LOCAL_DIR/generate_license.py" revoked --to-driver "$LOCAL_DIR/whattheflux_core.py" || {
         echo "ERROR: could not update the revocation list."
         exit 1
     }
